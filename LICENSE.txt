@@ -1,0 +1,19 @@
+DarkestTalk 0.2 — License / 许可
+================================
+
+English
+-------
+* Free to use, including in streams, videos and screenshots.
+* Free to modify for personal use.
+* Redistribution of this archive, or of a modified build, is allowed **with credit**
+  and a link to the original download page. You may not sell it or put it behind a paywall.
+* Not affiliated with Red Hook Studios. No game assets, art, audio or dialogue are included.
+* Provided as-is, without warranty. Back up your save files before use.
+
+中文
+----
+* 免费使用，可用于直播、录像、截图。
+* 可自行修改供个人使用。
+* 允许转载本压缩包或修改版，但必须注明出处并链接原发布页；不得售卖或放进付费墙。
+* 与 Red Hook Studios 无关；不含任何游戏素材（美术 / 音频 / 文案）。
+* 按现状提供，不提供担保；使用前请自行备份存档。

@@ -1,0 +1,10 @@
+{
+ "_meta": {
+  "code": "zh_CN",
+  "native": "简体中文",
+  "author": "DarkestTalk",
+  "version": 1,
+  "note": "中文是源语言，界面文案本身就写中文；这个文件只用来在语言列表里占位。要改中文措辞，直接改代码里的字符串。"
+ },
+ "strings": {}
+}

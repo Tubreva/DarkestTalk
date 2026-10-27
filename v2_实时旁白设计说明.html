@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>实时旁白 · v2 设计说明</title>
+<style>
+  :root{
+    --paper:#f6f3ec; --card:#fffdf8; --ink:#231f1c; --muted:#6c645a;
+    --line:#e2dacb; --red:#8c2f2f; --gold:#a07d3f; --green:#3f6b4b;
+    --mono:"Cascadia Mono","Consolas","Menlo",monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);
+    font-family:"PingFang SC","Microsoft YaHei","Hiragino Sans GB",system-ui,sans-serif;
+    line-height:1.78;font-size:15.5px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1000px;margin:0 auto;padding:54px 28px 96px}
+  h1,h2,h3,.serif{font-family:"Songti SC","Noto Serif SC","SimSun",Georgia,serif;font-weight:600}
+  h1{font-size:34px;line-height:1.36;margin:0 0 12px}
+  .sub{color:var(--muted);font-size:15px;margin:0}
+  .meta{color:var(--muted);font-size:13px;margin-top:16px;font-family:var(--mono)}
+  hr{border:0;border-top:1px solid var(--line);margin:42px 0}
+  h2{font-size:22px;margin:48px 0 6px;display:flex;align-items:baseline;gap:12px}
+  h2 .no{font-family:var(--mono);font-size:12.5px;color:var(--gold);letter-spacing:.08em;font-weight:400}
+  h3{font-size:16.5px;margin:26px 0 6px}
+  p{margin:9px 0}
+  .lead{font-size:16.5px;color:#3a342e}
+  .banner{margin:30px 0 8px;padding:20px 24px;background:var(--card);
+    border:1px solid var(--line);border-left:3px solid var(--red)}
+  .banner strong{color:var(--red)}
+  table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px;background:var(--card)}
+  th,td{border:1px solid var(--line);padding:9px 12px;text-align:left;vertical-align:top}
+  th{background:#f0eadf;font-size:13px;font-weight:600}
+  td code,p code,li code{font-family:var(--mono);font-size:12.4px;background:#efe9dd;padding:1px 5px;border-radius:3px}
+  pre{background:#22201d;color:#e8e2d5;padding:16px 18px;overflow:auto;font-family:var(--mono);
+    font-size:12.5px;line-height:1.65;margin:14px 0;border-left:3px solid var(--gold)}
+  pre .c{color:#8d8577} pre .g{color:#a8c197}
+  ul,ol{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  .quote{background:#f1ece1;border-left:3px solid var(--gold);padding:18px 24px;margin:16px 0;
+    font-family:"Songti SC","Noto Serif SC",Georgia,serif;font-size:16.5px;line-height:1.95}
+  .quote .tag{display:block;font-family:var(--mono);font-size:11px;letter-spacing:.1em;
+    color:var(--muted);margin-bottom:8px}
+  .quote p{margin:0 0 10px} .quote p:last-child{margin:0}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  @media(max-width:820px){.grid2,.grid3{grid-template-columns:1fr}h1{font-size:27px}}
+  .card{background:var(--card);border:1px solid var(--line);padding:16px 18px}
+  .card h4{margin:0 0 6px;font-size:14px;font-family:var(--mono);letter-spacing:.03em;color:var(--red)}
+  .card ul{padding-left:17px;margin:4px 0;font-size:13.6px}
+  .note{font-size:13px;color:var(--muted)}
+  .ok{color:var(--green)} .warn{color:#9a6a1d} .bad{color:var(--red)}
+  .badge{display:inline-block;font-family:var(--mono);font-size:11px;padding:1px 7px;
+    border:1px solid var(--line);color:var(--muted);margin-left:6px;vertical-align:2px}
+  footer{margin-top:56px;padding-top:18px;border-top:1px solid var(--line);color:var(--muted);font-size:12.5px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="serif" style="letter-spacing:.18em;font-size:12.5px;color:var(--gold)">V2 设计说明 · 从「记录器」改为「旁白机」</div>
+  <h1>不是把游戏写成小说<br>是让游戏里有人在说话</h1>
+  <p class="sub">按你的七条反馈重做了数据层：回合重定义、地图与战斗分治、结算三屏合一、全程中文化、覆盖窗可穿透。</p>
+  <div class="meta">2026-10-18 13:5x　·　实测样本：app.log 35 万行 / 71 个战斗回合 / 两趟副本　·　产出 82 个场景（60 回合 / 20 区域 / 2 结算）</div>
+
+  <div class="banner">
+    <strong>核心判断：你要的东西和我第一版做的东西，是两种产品。</strong><br>
+    编年史是<strong>事后</strong>把一局折叠成文章，天生抗拒重复；旁白是<strong>此刻</strong>给屏幕上的几秒配一句话，天生不怕重复——因为它不负责「讲完」，只负责「在场」。
+    这决定了三件事：粒度必须小、延迟必须短、<strong>平淡必须允许沉默</strong>。第三点是我上一版最大的错。
+  </div>
+
+  <h2><span class="no">01</span>你的七条反馈，逐条落地</h2>
+  <table>
+    <tr><th style="width:26%">你的要求</th><th style="width:36%">做法</th><th>状态</th></tr>
+    <tr>
+      <td><b>不要流水账式转写</b><br><span class="note">刷等级的低难度副本不该被写成文章</span></td>
+      <td>加了<strong>显著性过滤</strong>：每回合算一个分数（命中、暴击、击杀、治疗加权），低于阈值<strong>直接不输出</strong>。允许沉默是这个产品的关键设计，不是补丁。</td>
+      <td class="ok">已实现<br><span class="note">89 → 82 场景</span></td>
+    </tr>
+    <tr>
+      <td><b>实时捕捉 30 秒内发生的事</b></td>
+      <td>日志尾部增量读（0.4s 轮询、按字节偏移），战斗一结束回合就出场景；模型侧输出限制 40–110 字，首字延迟可压到 1–2 秒。</td>
+      <td class="ok">已实现</td>
+    </tr>
+    <tr>
+      <td><b>回合 = 所有人行动完毕</b></td>
+      <td>以 <code>bs_start_round</code> 为界。日志里这个状态每回合触发一次，实测 71 次，与你定义的回合完全一致（被跳过行动的人也计在回合内）。</td>
+      <td class="ok">已实现</td>
+    </tr>
+    <tr>
+      <td><b>地图行走需要另一套方案</b></td>
+      <td>用 <code>move to area 'rooN' / 'coMN'</code> 切分：<strong>一间房间或一条走廊 = 一个场景</strong>，内部统计步数、拾取、陷阱、火把、扎营。比「走 N 格算一回合」更贴合玩家的空间感。</td>
+      <td class="ok">已实现</td>
+    </tr>
+    <tr>
+      <td><b>结算三个界面算一个回合</b></td>
+      <td>以 <code>quest_end_completed</code> 触发，合并：地牢结果（地点/难度/长度/成败）+ 带回物品（按数量聚合）+ 人物变化（怪癖增量、阵亡）。战果从 <code>campaign_log</code> 取，物品从本趟日志聚合。</td>
+      <td class="ok">已实现</td>
+    </tr>
+    <tr>
+      <td><b>读职业介绍当补充</b></td>
+      <td>见第 06 节：DD1 并没有一段散文式职业介绍，它由「职业名 + 技能名 + 技能效果 + 台词」拼成。<strong>我把这四样全部抓下来生成角色卡</strong>，比一段介绍更好用。</td>
+      <td class="ok">已实现</td>
+    </tr>
+    <tr>
+      <td><b>不能出现 STR_XXX</b></td>
+      <td>扫 722 个字符串表（本体 + DLC + 255 个 mod + 创意工坊），建了 <strong>68,748 条中文映射</strong>。所有 id 先过字典再进 prompt；查不到的降级为可读兜底，不会漏原始键。</td>
+      <td class="ok">已实现</td>
+    </tr>
+    <tr>
+      <td><b>覆盖窗可穿透、可摆放</b></td>
+      <td>tkinter 零依赖实现：置顶、<code>WS_EX_TRANSPARENT</code> 点击穿透、不抢焦点、几何参数写在 <code>overlay.json</code>，<strong>改完保存即刻生效</strong>，不用重启。</td>
+      <td class="ok">已实现</td>
+    </tr>
+    <tr>
+      <td><b>短平快、流式</b></td>
+      <td>prompt 重写为「旁白机」约束：2–4 句、40–110 字、只写此刻、必须落到具体的人、至少一个感官细节、禁止游戏术语。第 07 节有三段按真实数据写的样章。</td>
+      <td class="ok">已实现</td>
+    </tr>
+  </table>
+
+  <hr>
+
+  <h2><span class="no">02</span>今天新挖到的五件事</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4>① 回合边界是干净的</h4>
+      <p style="margin:4px 0;font-size:14px"><code>bs_start_round</code> → 下一回合开始。实测 71 次。回合内每个单位的行动有完整的开始/结算状态，跳过行动的单位也留痕。</p>
+    </div>
+    <div class="card">
+      <h4>② 命中判定居然记录了</h4>
+      <p style="margin:4px 0;font-size:14px">每次挥击都会写 <code>Chance to hit: 0.85</code> 和 <code>Roll to hit: 0.47</code>。比较两者就知道中没中——<strong>「刀锋擦着它的肩甲过去」这种句子现在有事实依据了</strong>。</p>
+    </div>
+    <div class="card">
+      <h4>③ 地图是被逐格记录的</h4>
+      <p style="margin:4px 0;font-size:14px"><code>move to area 'coMN', tile 0</code> 进走廊/<code>'rooN'</code> 进房间，<code>Moved onto areatile N</code> 每走一格一条。房间与走廊的名字直接来自关卡图，不用猜。</p>
+    </div>
+    <div class="card">
+      <h4>④ 本地化是一整座金矿</h4>
+      <p style="margin:4px 0;font-size:14px">72.2 万个字符串表条目，68,748 条中文；<strong>188 个职业</strong>（含你的 mod 职业）能提取出技能名和 70 条上下的角色台词。</p>
+    </div>
+  </div>
+
+  <h3>⑤ 但有两件事必须说清楚</h3>
+  <div class="grid2">
+    <div class="card">
+      <h4 class="bad">拿不到：伤害数值、技能名</h4>
+      <p style="margin:4px 0;font-size:14px">日志整套翻完，只有状态机、命中、暴击、击杀，<strong>没有一处写「造成 17 点伤害」或「使用了惩戒」</strong>。所以旁白只能写「重手」「接连两下落实」这类表达——这反而逼出了更好的文风，但它确实是信息损失。</p>
+    </div>
+    <div class="card">
+      <h4 class="bad">会踩到：mod 的乱码与缺名</h4>
+      <p style="margin:4px 0;font-size:14px">你的「旧裔（Octopus）」mod 台词文件是 GBK 存成 UTF-8，直接读出来是「鐤戞儜鍓嶆柟」。已加自动修复；另外 <code>nullptr</code>、<code>###</code> 这类缺名也做了兜底。</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <h2><span class="no">03</span>三种场景，三套切法</h2>
+  <table>
+    <tr><th style="width:14%">场景</th><th style="width:24%">边界</th><th style="width:32%">收集什么</th><th>输出节奏</th></tr>
+    <tr>
+      <td><b>战斗回合</b><br><code>combat_round</code></td>
+      <td><code>bs_start_round</code> → 下一次<br><span class="note">= 全场行动完毕</span></td>
+      <td>谁出手、挥了几下、中了几下、有没有重手、放倒几个、治了谁；附带人物压力与怪癖</td>
+      <td>默认每 1 回合出一次，携带最近 2 回合；旧回合标为「前情，不要叙述」</td>
+    </tr>
+    <tr>
+      <td><b>地图区域</b><br><code>map_area</code></td>
+      <td><code>move to area</code> → 下一次<br><span class="note">= 一间房 / 一条走廊</span></td>
+      <td>走过几格、捡到什么、有没有陷阱/火把熄灭/扎营</td>
+      <td>离开该区域时出一次；空区域（0 格、无拾取、无事件）直接跳过</td>
+    </tr>
+    <tr>
+      <td><b>关卡结算</b><br><code>settlement</code></td>
+      <td><code>quest_end_completed</code></td>
+      <td>地点/难度/长度/成败、带回物品（聚合计数）、新增怪癖、阵亡</td>
+      <td>三屏合并，只出一次；这一段允许稍长（可到 200 字）</td>
+    </tr>
+  </table>
+  <p class="note">参数都在命令行：<code>--window</code>（携带几回合）、<code>--emit-every</code>（几回合出一次）、<code>--salience</code>（显著性阈值）、<code>--min-rounds</code>。</p>
+
+  <hr>
+
+  <h2><span class="no">04</span>抗噪：为什么刷副本不会再被写成文章</h2>
+  <p>这是你那条反馈里最要命的一点。一个只靠「事件触发」的旁白系统，在低难度副本里会不停地说话，最终变成另一种流水账。所以加了一层<strong>显著性打分</strong>：</p>
+  <pre><span class="c"># 每个回合窗口算一次</span>
+score = 0.4 × 命中次数
+      + 3.0 × 是否有重手（暴击）
+      + 2.5 × 放倒数
+      + 1.5 × 治疗次数
+
+if score &lt; <span class="g">--salience</span>:   <span class="c"># 默认 2.5</span>
+    <span class="g">静默</span>   <span class="c"># 什么也不说</span></pre>
+  <p>你的两趟副本实测：<strong>89 个候选场景 → 82 个真正输出</strong>，被砍掉的都是「四个人各挥一下、无事发生」的回合。往下调到 4.0 会更吝啬，只在高潮时说话——这个值应该由你自己玩着调，它其实是「旁白的密度旋钮」。</p>
+  <p class="note">同样的逻辑适用于地图：走过 5 格、什么都没捡到的走廊，不产出旁白。</p>
+
+  <hr>
+
+  <h2><span class="no">05</span>敌我识别：为什么不能靠坐标</h2>
+  <p>我第一版用「屏幕 x 坐标小于 700 就是我方」，这一版把它推翻了。证据：同一局的两场战斗里，我方英雄的 x 分别是 <code>542 / 388 / 234 / 80</code> 和 <code>780 / 626 / 472 / 318</code>——<strong>镜头和队形会让坐标整体平移</strong>，任何写死阈值的判断迟早出错。</p>
+  <p>现在的做法是拿 <code>RERANK-POS</code> 里的 <strong>(guid, 职业)</strong> 去对存档：两个字段同时匹配才算我方。日志里怪物 guid 会和人撞号（比如 guid=98 既是一具骷髅、也是你名册里的一位英雄），但配上职业就唯一了。<strong>这条规则不依赖分辨率、不依赖镜头、不依赖 mod，只要存档还能解码就一直有效。</strong></p>
+  <p>还有一个坑：行动者日志打印的是<strong>职业显示名</strong>（helli → 「狼女」），而暴击日志打印的是<strong>英雄本名</strong>（「御影」）。所以旁白里出现「御影」是查表换回来的，不是猜的。</p>
+
+  <hr>
+
+  <h2><span class="no">06</span>职业档案：能读到什么，读不到什么</h2>
+  <p>你希望读铁匠铺 / 工会 / 生存帐篷里的职业介绍。实测结论：<strong>DD1 没有一整段散文式的职业介绍</strong>。那三个界面显示的是结构化条目——职业名、技能名、升级树名称、技能效果描述、以及英雄台词。这些都由 <code>.string_table.xml</code> 提供，我已经全部抽出来了。</p>
+  <div class="grid2">
+    <div class="card">
+      <h4>以你的 mod 职业「星火·灾星（FYDT）」为例</h4>
+      <ul>
+        <li>中文名：星火·灾星</li>
+        <li>技能：惊骇之爪、横扫尾击、切入、恶火拖拽、飘渺、融化命运、重构、隔离、剥夺…</li>
+        <li>台词标签：shuffled / startmoving / increasingstress / bigwound…</li>
+        <li>台词样例：「愚蠢，是治不好的。」「嗯哼哼～」</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>另三种可用素材</h4>
+      <ul>
+        <li><b>怪癖</b>：名称 + 描述（例：赌术糟糕 / 气血稳健）</li>
+        <li><b>折磨</b>：名称 + 描述（例：偏执、自残、非理性）</li>
+        <li><b>物品</b>：名称 + 描述（例：翡翠、画像、静伏之种）</li>
+        <li><b>台词</b>：每个职业约 70 条，按压力/移动/濒死/暴击等情境分类</li>
+      </ul>
+    </div>
+  </div>
+  <p>台词是这套东西里最值钱的：它既是<strong>角色卡</strong>（这个人在害怕时说什么），也是<strong>文风锚</strong>（让模型模仿这个人说话，而不是让它自由发挥）。生成时按情境挑 2–3 条塞进 prompt，比写一段「该职业性格内向」有效得多。</p>
+
+  <hr>
+
+  <h2><span class="no">07</span>文风：旧样章的问题与三段新样章</h2>
+  <p>你说得对。之前那段六百字能成立，是因为它被当成一篇文章来读；在游戏里，玩家刚打完一个回合，屏幕上只有几秒钟的注意力。所以要改的不是文笔，是<strong>单位</strong>——从「章节」改成「一句话的呼吸」。</p>
+
+  <h3>旧（错误示范）</h3>
+  <div class="quote" style="opacity:.6">
+    <span class="tag">段落式 · 600 字 · 事后追述</span>
+    <p>御影的火把在第三个转角熄了。黑暗并不立刻扑上来，它先安静了一会儿——像一头确认猎物已无退路的兽……</p>
+  </div>
+
+  <h3>新（按你的真实回合数据写）</h3>
+  <div class="quote">
+    <span class="tag">战斗回合 · 御影 4 次挥击 2 次落实 1 次重手</span>
+    <p>御影先动。刀尖在石壁上划出两道白痕，第三下才咬进骨缝。</p>
+    <p>碎屑落下来的时候，那只骸骨官僚还保持着举臂的姿势。</p>
+  </div>
+  <div class="quote">
+    <span class="tag">地图区域 · 走廊 coDE，走过 5 格，拾得金币、翡翠</span>
+    <p>走廊比图上画的更长。</p>
+    <p>第五步，邦德维尔的靴底磕到一块松砖——里面塞着一小袋金币，压着一枚凉得反常的翡翠。</p>
+  </div>
+  <div class="quote">
+    <span class="tag">关卡结算 · 遗迹 · 学徒 · 中 / 活着回来 / 途中精神崩溃、踩过陷阱</span>
+    <p>石门在身后合上时，塞利西亚数了两遍人数，才确认四个都在。</p>
+    <p>御影的眼睛还在跟着火把转。那是地牢留在人身上的东西，比伤口难好。</p>
+    <p>画像和雕像堆在先祖的桌上，没有人说话。</p>
+  </div>
+  <p>三段都遵守同一套约束：只写此刻、只写这几个人、至少一个感官细节（碎屑、凉、靴底）、不用一个游戏术语、句号后立刻断。<strong>要不要更冷、更野、更文，是 prompt 里两个滑杆的事。</strong></p>
+
+  <hr>
+
+  <h2><span class="no">08</span>覆盖窗规格</h2>
+  <table>
+    <tr><th style="width:22%">项</th><th>实现</th></tr>
+    <tr><td>置顶 / 穿透</td><td><code>topmost</code> + <code>WS_EX_LAYERED | WS_EX_TRANSPARENT | WS_EX_NOACTIVATE</code>：鼠标点上去直接落到游戏里，且不抢焦点</td></tr>
+    <tr><td>位置尺寸</td><td><code>overlay.json</code> 里的 x / y / width / height；<strong>程序每 180ms 复查一次配置，改完保存立即生效</strong></td></tr>
+    <tr><td>观感</td><td>半透明深色底（默认 0.66）、暖白衬线正文、逐字打出（标点处停顿更久），只保留最近约 1200 字</td></tr>
+    <tr><td>默认位置</td><td>1920×1080 下放在上方中偏右的空区（640,44,860×210），避开血量条与技能栏</td></tr>
+    <tr><td>依赖</td><td>仅 Python 标准库 tkinter。<span class="warn">注意：本机 3.13 精简版不含 tkinter，需用系统的 Python 3.9 运行（run.bat 已处理）</span></td></tr>
+  </table>
+
+  <hr>
+
+  <h2><span class="no">09</span>稳定性与 mod 兼容：九条硬约束</h2>
+  <div class="grid2">
+    <div class="card">
+      <h4>对游戏</h4>
+      <ul>
+        <li><b>只读。</b>不改 exe、不注入进程、不写存档、不装 mod。</li>
+        <li>日志按字节偏移增量读，<b>日志被清空或轮转时自动归零重读</b>。</li>
+        <li>存档可能被游戏占用：解码失败静默跳过，下个周期重试。</li>
+        <li>寻址不靠坐标、不靠内存偏移、不靠版本号。</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>对 mod</h4>
+      <ul>
+        <li>职业/怪物/物品/怪癖识别全部走本地化字典，<b>255 个 mod 自动纳入</b>。</li>
+        <li>缺名（<code>nullptr</code>、<code>###</code>）降级为可读兜底，不中断。</li>
+        <li>mod 文本乱码自动尝试 GBK→UTF-8 救回。</li>
+        <li>新装 mod 后跑一次 <code>build_loc.bat</code> 重建字典即可。</li>
+        <li>同职业两人时退回职业名调用，不猜错人。</li>
+      </ul>
+    </div>
+  </div>
+
+  <hr>
+
+  <h2><span class="no">10</span>现在的状态与唯一待验证项</h2>
+  <p><b>已交付并跑通：</b>本地化字典（68,748 条 / 188 职业）、v2 解析器（三种场景 / 82 个场景 / 全中文事实卡）、显著性过滤、覆盖窗、自动存档刷新、一键脚本。</p>
+  <p><b>唯一还没验证的：</b><code>persist.game.json</code> 里 <code>raid_save</code> 字段在副本中是否每回合刷新。如果成立，我们能补上<strong>逐回合血量、压力、火把、背包</strong>，甚至用血量差反推伤害——那会把「重手」升级成「这一下削掉它半边肩甲」。验证只需要你开一局，程序在旁边盯 30 秒。</p>
+  <p><b>不打算做的：</b>内存读取 / DLL 注入。它能把上面那项补到 100%，但每次游戏更新、每加一个 mod 都可能崩——与你「稳定性和兼容性优先」的要求直接冲突。</p>
+
+  <footer>
+    <p>关于成本：一次场景调用的输入约 300–600 token（比 v1 小一个数量级，因为只给最近两回合），输出 60–150 token。一晚十趟副本大约几十次调用，花费在几毛钱量级。</p>
+    <p style="margin-bottom:0">本说明中的所有数字（71 回合、82 场景、68,748 条、188 职业、x 坐标对比）均来自今天对你本机日志与存档的实测；三段样章为人工按真实数据撰写，用于文风评估。</p>
+  </footer>
+</div>
+</body>
+</html>

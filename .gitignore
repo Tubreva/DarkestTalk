@@ -1,0 +1,44 @@
+# ---- 玩家数据 / 本机配置（首次启动自动生成，可能含 API key 与存档信息）----
+config.json
+config.backup.json
+config.json.bak
+overlay.json
+paths.json
+ui.json
+python_path.txt
+knowledge_overrides.json
+
+# 运行时目录（在 <游戏目录>\DarkestTalkData\ 下，这里只是兜底）
+world/
+out/
+probe/
+logs_export/
+
+# ---- 构建产物 ----
+build/
+dist/
+dist_exe/
+_build_exe/
+__pycache__/
+*.pyc
+*.pyo
+
+# ---- 历史备份 / 归档 ----
+archive/
+_archive/
+*.bak
+*.py.20*
+
+# ---- 第三方大文件：自行下载，见 README ----
+tools/DDSaveEditor.jar
+
+# ---- 开发临时记录 ----
+_debug_ui.txt
+_pack_block.txt
+_suite.txt
+
+# ---- 本机专属脱敏词条（打包时扫这些词）----
+.private_terms
+
+# ---- 自己写的角色扮演提示词（成人向，不进公开仓库）----
+自写提示词.md
